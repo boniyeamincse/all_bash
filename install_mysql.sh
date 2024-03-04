@@ -1,4 +1,10 @@
 #!/bin/bash
+###############################
+# Author: Boni Yeamin        #
+# Date:  3/2/2024                     #
+# This is Nginx install Bash  #
+# Version : v1                #
+###############################
 
 # Check distribution and set package manager
 if [ -f /etc/os-release ]; then
