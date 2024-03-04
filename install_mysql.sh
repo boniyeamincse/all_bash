@@ -1,7 +1,7 @@
 #!/bin/bash
 ###############################
-# Author: Boni Yeamin        #
-# Date:  3/2/2024                     #
+# Author: Boni Yeamin         #
+# Date:  3/2/2024             #
 # This is Nginx install Bash  #
 # Version : v1                #
 ###############################
@@ -20,7 +20,7 @@ else
   exit 1
 fi
 
-# Define package manager based on distribution
+# Define package manager based on the distribution
 case "$distro" in
   "centos"|"redhat"|"fedora")
     package_manager="yum"
