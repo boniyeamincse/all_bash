@@ -1,0 +1,301 @@
+==== CENTOS 7 LEMP STACK INSTALLATION ====
+0. Make sure the centos 7 server have internet connection
+
+1. Install the EPEL Repository 
+	sudo yum -y install epel-release
+
+2. Install the Remi Repository
+	sudo rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
+
+3. Install Nginx
+	sudo yum -y install nginx
+
+4. Start the nginx service
+	sudo service nginx start
+
+5. Auto start nginx on boot
+	sudo systemctl enable nginx
+
+6. Allow port 80 (HTTP) in the firewall
+	sudo firewall-cmd --zone=public --add-service=http --permanent
+
+7. Reload firewall configuration
+	sudo firewall-cmd --reload
+
+8. check if the web server is accessible through browser. input the server's ip address in the browser
+
+9. install php 7.2
+	sudo yum --enablerepo=remi,remi-php72 install php-fpm php-common
+
+10. install php modules
+	sudo yum --enablerepo=remi,remi-php72 install php-opcache php-pecl-apcu php-cli php-pear php-pdo php-mysqlnd php-pecl-redis php-gd php-mbstring php-mcrypt php-xml php-zip
+
+11. start the php-fpm service
+	sudo service php-fpm start
+
+12. Auto start php-fpm on boot
+	sudo systemctl enable php-fpm.service
+
+13. Make backup of the nginx.conf file
+	sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak
+
+14. Modify PHP-FPM to listen ip instead of socket ##
+	sudo vi /etc/php-fpm.d/www.conf
+
+14.5 change the following in www.conf file
+	listen = 127.0.0.1:9000
+
+15. open nginx.conf file
+	sudo vi /etc/nginx/nginx.conf
+
+16. change the root directory of nginx
+	root /var/www/sites;
+	index index.php index.html index.htm;
+
+17 in the location, add default files
+	location / {
+    		try_files $uri $uri/ /index.php?$query_string;
+	}
+
+	location ~ \.php$ {
+        	include /etc/nginx/fastcgi_params;
+        	fastcgi_pass  127.0.0.1:9000;
+        	fastcgi_index index.php;
+        	fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    	}
+
+18. test if nginx.conf syntax is OK
+	sudo nginx -t
+
+18. make a folder called 'sites' inside the var/www/ directory
+	sudo mkdir /var/www/sites
+
+19. create a file inside the sites folder
+	sudo vi index.php
+
+20. paste this code inside the index.php
+	<?php phpinfo();
+
+21. restart the nginx service
+	sudo service nginx restart
+
+22. input the server's ip address in the browser to check if nginx and php is working
+
+23. install wget
+	sudo yum -y install wget
+
+24. install yum-utils
+	sudo yum -y install yum-utils
+
+25. download mysql yum repository
+	sudo wget https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm
+
+26. install mysql release package
+	sudo rpm -Uvh mysql80-community-release-el7-1.noarch.rpm
+
+27. select the specific version of mysql you want to use, we'll use 5.7 as example
+	sudo yum-config-manager --disable mysql80-community
+	sudo yum-config-manager --enable mysql57-community
+
+28. install mysql
+	sudo yum install mysql-community-server
+	
+29. start the mysql service
+	sudo service mysqld start
+
+30. auto start mysql on boot
+	sudo systemctl enable mysqld.service
+
+31. find and copy the mysql temporary password
+	sudo grep 'temporary password' /var/log/mysqld.log
+
+32. run mysql secure installation
+	mysql_secure_installation
+
+33. you will be prompted for new root password, input your new root password
+
+34. check if mysql is installed and running
+	mysql -u root -p
+
+
+========= RUN LARAVEL APPLICATION ON CENTOS LEMP STACK ===========
+1. install composer
+	curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/bin --filename=composer
+
+2. check if composer is installed
+	composer
+
+3. install git
+	sudo yum -y install git
+
+4. install unzip
+	sudo yum -y install unzip
+
+5. go to sites folder
+	cd /var/www/sites
+
+6. clone project repository
+	sudo git clone url_here
+
+7. go to project directory
+	cd project_directory_name
+
+8. install composer packages
+	sudo composer install --no-dev
+
+9. copy .env.example and rename it to .env
+	sudo cp .env.example .env
+
+10. generate app key
+	sudo php artisan key:generate
+
+11. open .env file
+	sudo vi .env
+
+12. change these values in the .env file
+	APP_ENV=production
+	APP_DEBUG=false
+	DB_DATABASE=your_database_name
+	DB_USERNAME=your_username
+	DB_PASSWORD=your_password
+	
+13. open php-fpm config file
+	sudo vi /etc/php-fpm.d/www.conf
+
+14. change php-fpm user to nginx:nginx
+	user = nginx
+	group = nginx
+
+15. change project directory permissions
+	sudo chown -R nginx:nginx /var/www/sites/project_name
+	sudo chmod -R 755 storage
+	sudo chmod -R 755 bootstrap/cache
+
+16. Install 'policycoreutils-python' 
+	sudo yum -y install policycoreutils-python
+
+17. change the context of the laravel project directories
+	sudo semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/sites/project_name(/.*)?'
+	sudo semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/sites/project_name/public(/.*)?'
+	sudo semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/sites/project_name/storage(/.*)?'
+	sudo semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/sites/project_name/app(/.*)?'
+	sudo semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/sites/project_name/bootstrap(/.*)?'
+	sudo semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/sites/project_name/config(/.*)?'
+	sudo semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/sites/project_name/database(/.*)?'
+	sudo semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/sites/project_name/resources(/.*)?'
+	sudo semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/sites/project_name/routes(/.*)?'
+	sudo semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/sites/project_name/vendor(/.*)?'
+	sudo semanage fcontext -a -t httpd_sys_rw_content_t '/var/www/sites/project_name/tests(/.*)?'
+
+18. run SELinux restorecon command
+	sudo restorecon -Rv '/var/www/sites/project_name/'
+
+19. go again to nginx.conf file and open it
+	sudo vi /etc/nginx/nginx.conf
+
+20. change the root directory in the nginx.conf
+	root /var/www/sites/project_name/public;
+
+21. login to mysql and create a database
+	create database database_name;
+
+22. run database migrations and seeders
+	sudo php artisan migrate
+	sudo php artisan db:seed
+
+23. if your app requrires username to login instead of email, go to /var/www/sites/project_name/vendor/laravel/framework/src/Illuminate/Foundation/Auth/AuthenticatesUsers.php and open it
+	sudo vi /var/www/sites/project_name/vendor/laravel/framework/src/Illuminate/Foundation/Auth/AuthenticatesUsers.php
+
+24. find username() method and edit the return value from 'email' to 'username'
+	public function username()
+    	{
+        	return 'username';
+    	}
+
+25. add permission to SELinux to allow nginx to connect to database
+	sudo setsebool -P httpd_can_network_connect_db=1
+
+26. your laravel app should now be up and running!
+
+============= INSTALL REDIS ==============
+1. install redis (make sure EPEL repository is already installed)
+	sudo yum -y install redis
+
+2. start redis service
+	sudo service redis start
+
+3. start redis on server boot
+	sudo systemctl enable redis
+	
+============ USE REDIS FOR LARAVEL BROADCASTING =============
+1. change BROADCAST_DRIVER value in .env file
+	BROADCAST_DRIVER=redis
+
+============= INSTALL NODE.JS =================
+1. enable the Node.js v10 repository (make sure EPEL Repository is already installed)
+	curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -
+
+2. install Node.js
+	sudo yum -y install nodejs
+
+3. install node.js build tools (optional)
+	sudo yum -y install gcc-c++ make
+
+4. verify if node.js is installed
+	node -v
+
+============ INSTALL NODE.JS PACKAGES =========
+1. go to project directory
+	cd /path/to/project/directory
+
+2. install node.js packages (make sure package.json is present inside the directory)
+	sudo npm install
+
+============ DAEMONIZE NODE.JS SCRIPT ============
+1. install PM2
+	sudo npm install pm2 -g
+
+2. configure startup script to launch PM2 and its mananged processes on server boot
+	sudo pm2 startup
+
+3. run node.js app/script
+	sudo pm2 start /path/to/the/script/filename.js
+
+4. save process list 
+	sudo pm2 save
+
+5. allow external access to port 3000
+	sudo firewall-cmd --zone=public --add-port=3000/tcp --permanent
+
+6. reload firewall configuration
+	sudo firewall-cmd --reload
+
+7. add permission to SELinux to allow nginx to connect to redis
+	sudo setsebool -P httpd_can_network_connect=1
+	
+===== INSTALL SUPERVISOR ======
+1. sudo yum -y install supervisor
+
+2. open supervisor config file: 
+	vi /etc/supervisord.conf
+
+3. add the ff:
+	[program:programname]
+	command=php /var/www/sites/project_name/artisan queue:listen
+	process_name=%(program_name)s_%(process_num)02d
+	autostart=true
+	autorestart=true
+	user=root
+	numprocs=5
+	redirect_stderr=true
+	stdout_logfile=/var/www/sites/project_name/queue-worker.log
+
+4. read the newly edited config file:
+	sudo supervisorctl reread
+
+5. update the config:
+	sudo supervisorctl update
+
+6. start the queue worker:
+	sudo supervisorctl start programname:*
+
